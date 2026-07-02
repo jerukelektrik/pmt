@@ -46,6 +46,7 @@ export default function App() {
   const [collapsedGroups, setCollapsedGroups] = useState({ todo: false, in_progress: false, in_review: false, done: false });
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [collapsedBrands, setCollapsedBrands] = useState({});
+  const [docSearchQuery, setDocSearchQuery] = useState('');
 
   // Data states
   const [brands, setBrands] = useState([]);
@@ -262,6 +263,27 @@ export default function App() {
       }
     } catch (err) {
       setBrandError('Kesalahan jaringan server');
+    }
+  };
+
+  const handleDeleteBrand = async (brandId) => {
+    if (!window.confirm("Are you sure you want to delete this brand? All tasks associated with this brand will be unassigned from it.")) return;
+    try {
+      const res = await fetch(`/api/brands/${brandId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        fetchBrands();
+        fetchTasks();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to delete brand');
+      }
+    } catch (err) {
+      alert('Network error deleting brand');
     }
   };
 
@@ -992,18 +1014,42 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* View specific brand tasks button */}
-                        <div style={{ marginTop: '16px' }}>
+                        {/* View specific brand tasks button with delete option for Lead */}
+                        <div style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
                           <button 
                             className="btn btn-secondary" 
-                            style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem' }}
+                            style={{ flexGrow: 1, padding: '8px 12px', fontSize: '0.85rem' }}
                             onClick={() => {
                               setFilterBrand(brand.id);
                               setActiveTab('kanban');
                             }}
                           >
-                            View Brand Tasks
+                            {user.role === 'lead' ? 'View Tasks' : 'View Brand Tasks'}
                           </button>
+                          {user.role === 'lead' && (
+                            <button 
+                              type="button"
+                              className="btn btn-secondary delete-brand-btn" 
+                              style={{ 
+                                padding: '8px 12px', 
+                                fontSize: '0.85rem', 
+                                color: 'var(--color-danger)', 
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all var(--transition-fast)'
+                              }}
+                              onClick={() => handleDeleteBrand(brand.id)}
+                              title="Delete Brand"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                <line x1="10" y1="11" x2="10" y2="17"></line>
+                                <line x1="14" y1="11" x2="14" y2="17"></line>
+                              </svg>
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -2293,12 +2339,71 @@ export default function App() {
               </div>
             </div>
 
+            {/* Search Bar for Documents */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: '24px',
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-md)',
+              padding: '8px 16px',
+              gap: '10px',
+              maxWidth: '450px',
+              boxShadow: 'var(--shadow-sm)'
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input 
+                type="text"
+                placeholder="Search documents by name, type, or task..."
+                value={docSearchQuery}
+                onChange={(e) => setDocSearchQuery(e.target.value)}
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  background: 'none',
+                  fontSize: '0.85rem',
+                  color: 'var(--text-primary)',
+                  width: '100%'
+                }}
+              />
+              {docSearchQuery && (
+                <button
+                  onClick={() => setDocSearchQuery('')}
+                  style={{
+                    border: 'none',
+                    background: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    fontSize: '1.1rem',
+                    padding: '0 4px',
+                    fontWeight: 600
+                  }}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+
             {loading ? (
               <div style={{ textAlign: 'center', padding: '40px' }}>Loading documents...</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 {brands.map(brand => {
-                  const brandLinks = links.filter(l => l.brand_name === brand.name);
+                  const brandLinks = links.filter(l => {
+                    const matchesBrand = l.brand_name === brand.name;
+                    if (!matchesBrand) return false;
+                    if (!docSearchQuery) return true;
+                    const query = docSearchQuery.toLowerCase();
+                    return (
+                      (l.title && l.title.toLowerCase().includes(query)) ||
+                      (l.type && l.type.toLowerCase().includes(query)) ||
+                      (l.task_title && l.task_title.toLowerCase().includes(query))
+                    );
+                  });
                   const isCollapsed = collapsedBrands[brand.id];
                   const brandBg = `${brand.color}15`;
                   const brandText = brand.color;

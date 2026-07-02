@@ -297,6 +297,12 @@ main.main-content {
   border-color: var(--border-hover);
 }
 
+.delete-brand-btn:hover {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+  border-color: var(--color-danger) !important;
+  color: var(--color-danger) !important;
+}
+
 .btn-danger {
   background-color: var(--color-danger);
   color: #fff;
