@@ -1,0 +1,32 @@
+# GMB Dashboard Ignored Files
+
+# Node Modules & Environment
+node_modules/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Local Databases (relational cache)
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+*.db
+
+# GMB Authentication Tokens & Local Logs
+data/tokens.json
+server/tokens.json
+logs/
+*.log
+
+# CSV Temp Uploads & Local Exports
+uploads/
+exports/
+*.csv
+*.xlsx
+
+# Built Web Assets
+dist/
+.vite/
